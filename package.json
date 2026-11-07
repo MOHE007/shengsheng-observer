@@ -28,7 +28,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MOHE007/声生观察台"
+    "url": "https://github.com/MOHE007/shengsheng-observer"
   },
   "keywords": ["dsh", "deepseek-harness", "vocal", "audio", "voice-analysis"]
 }
