@@ -1,0 +1,34 @@
+{
+  "name": "dsh-shengsheng-observer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "声生观察台 · DeepSeek Harness 插件：上传清唱干声，分析音色、音域与嗓况，并给出编曲混音建议。",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg"
+  ],
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "inject": []
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MOHE007/shengsheng-observer"
+  },
+  "keywords": ["dsh", "deepseek-harness", "vocal", "audio", "voice-analysis"]
+}
