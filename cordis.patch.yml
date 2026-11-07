@@ -1,0 +1,4 @@
+# 声生观察台 bundle patch：同一个包提供 Host 半片与浏览器半片
+- insert:
+    - id: shengsheng-observer
+      name: 'dsh-shengsheng-observer'
