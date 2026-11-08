@@ -5,7 +5,7 @@ DeepSeek Harness 的一个插件：上传一段**清唱干声**，拿到客观�
 | 板块 | 回答的问题 | 你会看到 |
 |---|---|---|
 | **适配** | 我适合唱什么 | 音域（最低/最高/舒适区）、频段能量分布、音色倾向、风格方向 |
-| **嗓况** | 我的嗓子状态如何 | jitter、shimmer、HNR、CPP、气声比例、颗粒感参考指数 + 护嗓/就医提示 |
+| **嗓况** | 我的嗓子状态如何 | jitter、shimmer、HNR、气声 / 颗粒感 / 稳定度参考指数 + 护嗓/就医提示 |
 | **制作** | 编曲混音怎么调 | 频谱平衡、EQ 建议、动态/压缩、齿音与呼吸声、频段冲突 |
 
 > 嗓况板块只提供**客观指标与就医提示**，不是医疗诊断，也不能替代嗓音科/耳鼻喉科检查。
@@ -21,15 +21,27 @@ DeepSeek Harness 的一个插件：上传一段**清唱干声**，拿到客观�
 - **客观先行**：先给可复现的数值（音域、频段能量、jitter/shimmer/HNR 等），再给方向性建议。
 - **边界清晰**：声带健康只做筛查提示，不做诊断。
 
-## 安装（本地开发）
+## 安装（试用）
 
-在 DeepSeek Harness 的「插件 → 添加插件」里选择本地目录，或在 profile 中 link 安装：
+**方式一：下载安装包（推荐）**
+
+1. 到 [Releases](https://github.com/MOHE007/shengsheng-observer/releases) 下载最新版 `dsh-shengsheng-observer-0.5.0.tgz`；
+2. 打开 DeepSeek Harness → 插件 → 添加插件，选择这个 tgz 安装；
+3. 左侧栏出现「声生观察台」后，刷新页面即可使用。
+
+**方式二：命令行**
 
 ```sh
-dsh plugin --profile desktop add link:/Users/mac/Downloads/声生观察台
+dsh plugin --profile <你的 profile> add file:/下载目录/dsh-shengsheng-observer-0.5.0.tgz
 ```
 
-> 具体以当前 DSH 版本的插件管理界面为准。
+**方式三：从源码本地安装**
+
+```sh
+dsh plugin --profile desktop add link:/path/to/声生观察台
+```
+
+> 欢迎试用后在本仓库的 Issues 里反馈问题或建议。
 
 ## 目录
 
