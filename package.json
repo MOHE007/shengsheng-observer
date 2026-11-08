@@ -1,8 +1,8 @@
 {
   "name": "dsh-shengsheng-observer",
   "version": "0.5.0",
-  "private": true,
   "type": "module",
+  "publishConfig": { "access": "public" },
   "description": "声生观察台 · DeepSeek Harness 插件：上传清唱干声，分析音色、音域与嗓况，并给出编曲混音建议。",
   "exports": {
     ".": "./index.js",

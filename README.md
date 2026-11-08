@@ -23,19 +23,23 @@ DeepSeek Harness 的一个插件：上传一段**清唱干声**，拿到客观�
 
 ## 安装（试用）
 
-**方式一：下载安装包（推荐）**
+**方式一：npm 一键安装（推荐）**
+
+在 DeepSeek Harness 的「插件 → 添加插件」里搜索 `dsh-shengsheng-observer`，点安装。
+
+**方式二：下载安装包**
 
 1. 到 [Releases](https://github.com/MOHE007/shengsheng-observer/releases) 下载最新版 `dsh-shengsheng-observer-0.5.0.tgz`；
 2. 打开 DeepSeek Harness → 插件 → 添加插件，选择这个 tgz 安装；
 3. 左侧栏出现「声生观察台」后，刷新页面即可使用。
 
-**方式二：命令行**
+**方式三：命令行**
 
 ```sh
 dsh plugin --profile <你的 profile> add file:/下载目录/dsh-shengsheng-observer-0.5.0.tgz
 ```
 
-**方式三：从源码本地安装**
+**方式四：从源码本地安装**
 
 ```sh
 dsh plugin --profile desktop add link:/path/to/声生观察台
