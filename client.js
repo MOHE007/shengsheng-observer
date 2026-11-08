@@ -154,6 +154,13 @@ window.__ModuleLoader__.load({
 .ss-meta-cell label{display:block;font-size:11px;color:var(--dsw-alias-label-secondary);margin-bottom:4px}
 .ss-meta-cell b{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;word-break:break-all}
 .ss-wave{display:block;width:100%;height:110px;margin-top:14px;color:var(--dsw-alias-brand-primary);background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:10px}
+.ss-player{display:flex;align-items:center;gap:10px;margin-top:14px}
+.ss-play{width:36px;height:36px;border-radius:50%;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);cursor:pointer;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center}
+.ss-seek{flex:1;accent-color:var(--dsw-alias-brand-primary)}
+.ss-time{font-size:12px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;min-width:96px;text-align:right}
+.ss-wavewrap{position:relative;margin-top:14px}
+.ss-wavewrap .ss-wave{margin-top:0}
+.ss-head{position:absolute;top:0;bottom:0;width:1px;background:#ff5c7a;pointer-events:none}
 .ss-chartwrap{margin-top:14px;background:#0b0d14;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;padding:6px;overflow:hidden}
 .ss-chart{display:block;width:100%;border-radius:6px}
 .ss-chart-cap{font-size:11px;color:var(--dsw-alias-label-secondary);padding:4px 4px 2px}
@@ -544,10 +551,99 @@ window.__ModuleLoader__.load({
           const inputRef = React.useRef(null);
           const styleEl = React.useMemo(() => h('style', null, CSS), []);
 
+          const audioCtxRef = React.useRef(null);
+          const sourceRef = React.useRef(null);
+          const startRef = React.useRef({ startedAt: 0, offset: 0 });
+          const [playing, setPlaying] = React.useState(false);
+          const [playTime, setPlayTime] = React.useState(0);
+
+          const stopSource = () => {
+            const s = sourceRef.current;
+            if (s) { try { s.onended = null; s.stop(); } catch (e) {} sourceRef.current = null; }
+          };
+          const ensureCtx = () => {
+            if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+              const AC = window.AudioContext || window.webkitAudioContext;
+              audioCtxRef.current = new AC();
+            }
+            if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
+            return audioCtxRef.current;
+          };
+          const fmtTime = (s) => {
+            if (!isFinite(s) || s < 0) s = 0;
+            const m = Math.floor(s / 60);
+            const sec = s - m * 60;
+            return m + ':' + (sec < 10 ? '0' : '') + sec.toFixed(1);
+          };
+          const doPlay = () => {
+            if (!buffer) return;
+            const ctx = ensureCtx();
+            stopSource();
+            let offset = startRef.current.offset;
+            if (offset >= buffer.duration - 0.01) offset = 0;
+            const src = ctx.createBufferSource();
+            src.buffer = buffer;
+            src.connect(ctx.destination);
+            src.onended = () => {
+              if (sourceRef.current === src) {
+                sourceRef.current = null;
+                startRef.current = { startedAt: 0, offset: buffer.duration };
+                setPlaying(false);
+                setPlayTime(buffer.duration);
+              }
+            };
+            src.start(0, offset);
+            sourceRef.current = src;
+            startRef.current = { startedAt: ctx.currentTime, offset };
+            setPlaying(true);
+            setPlayTime(offset);
+          };
+          const doPause = () => {
+            const ctx = audioCtxRef.current;
+            if (!ctx) return;
+            startRef.current.offset += ctx.currentTime - startRef.current.startedAt;
+            stopSource();
+            setPlaying(false);
+          };
+          const togglePlay = () => { if (playing) doPause(); else doPlay(); };
+          const seekTo = (t) => {
+            if (!buffer) return;
+            const clamped = Math.max(0, Math.min(buffer.duration, t));
+            if (playing) {
+              stopSource();
+              setPlaying(false);
+              startRef.current = { startedAt: 0, offset: clamped };
+              doPlay();
+            } else {
+              startRef.current.offset = clamped;
+              setPlayTime(clamped);
+            }
+          };
+
+          React.useEffect(() => {
+            if (!playing) return undefined;
+            const id = setInterval(() => {
+              const ctx = audioCtxRef.current;
+              if (!ctx) return;
+              const tNow = startRef.current.offset + (ctx.currentTime - startRef.current.startedAt);
+              setPlayTime(Math.min(buffer ? buffer.duration : 0, tNow));
+            }, 100);
+            return () => clearInterval(id);
+          }, [playing, buffer]);
+
+          React.useEffect(() => () => {
+            stopSource();
+            if (audioCtxRef.current) { try { audioCtxRef.current.close(); } catch (e) {} }
+          }, []);
+
           const loadFile = React.useCallback(async (file) => {
             if (!file) return;
             setError('');
             setAnalysis(null);
+            stopSource();
+            startRef.current = { startedAt: 0, offset: 0 };
+            setPlaying(false);
+            setPlayTime(0);
             try {
               const arrayBuf = await file.arrayBuffer();
               const AC = window.AudioContext || window.webkitAudioContext;
@@ -835,7 +931,23 @@ window.__ModuleLoader__.load({
                   h('div', { className: 'ss-meta-cell' }, h('label', null, t('meta.channels')), h('b', null, meta.channels === 1 ? 'Mono' : meta.channels + ' ch')),
                   h('div', { className: 'ss-meta-cell' }, h('label', null, t('meta.peak')), h('b', null, (20 * Math.log10(Math.max(meta.peak, 1e-6))).toFixed(1) + ' dBFS')),
                 ) : null,
-                buffer ? h('canvas', { ref: canvasRef, className: 'ss-wave' }) : null,
+                buffer ? h('div', { className: 'ss-player' },
+                  h('button', {
+                    type: 'button', className: 'ss-play',
+                    'aria-label': playing ? 'Pause' : 'Play',
+                    onClick: togglePlay,
+                  }, playing ? '⏸' : '▶'),
+                  h('input', {
+                    type: 'range', className: 'ss-seek', min: 0, max: buffer.duration, step: 0.01,
+                    value: Math.min(playTime, buffer.duration),
+                    onChange: (e) => seekTo(parseFloat(e.target.value)),
+                  }),
+                  h('span', { className: 'ss-time' }, fmtTime(playTime) + ' / ' + fmtTime(buffer.duration)),
+                ) : null,
+                buffer ? h('div', { className: 'ss-wavewrap' },
+                  h('canvas', { ref: canvasRef, className: 'ss-wave' }),
+                  h('div', { className: 'ss-head', style: { left: (buffer.duration ? (playTime / buffer.duration) * 100 : 0) + '%' } }),
+                ) : null,
                 analysis ? h('div', { className: 'ss-chartwrap' },
                   h('div', { className: 'ss-chart-cap' }, t('spec.title')),
                   h('canvas', { ref: specRef, className: 'ss-chart', style: { height: 180 } }),
