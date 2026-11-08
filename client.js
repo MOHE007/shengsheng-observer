@@ -54,6 +54,23 @@ window.__ModuleLoader__.load({
       'health.advice.ok': 'Indicators are in a common range. Keep warming up and hydrate.',
       'health.advice.breathy': 'High breathiness — could be style or fatigue. Rest and try a supported tone.',
       'health.advice.rough': 'Elevated perturbation / noise. If it persists, see a laryngologist.',
+      'band.low': 'Low 20–250',
+      'band.lowmid': 'Low-mid 250–500',
+      'band.mid': 'Mid 500–2k',
+      'band.highmid': 'High-mid 2k–4k',
+      'band.high': 'High 4k–8k',
+      'band.air': 'Air 8k–16k',
+      'tone.low': 'Energy sits low — chesty, warm.',
+      'tone.mid': 'Energy sits in the mids — present, forward.',
+      'tone.high': 'Energy sits high — bright, airy.',
+      'mix.title': 'Mix suggestions',
+      'mix.low': 'Low / low-mid looks heavy — high-pass around 80–100 Hz or cut 200–400 Hz to clear mud.',
+      'mix.deess': 'High-mid is strong — watch sibilance; try a de-esser around 5–8 kHz.',
+      'mix.bright': 'High band is strong — the take may be bright; tame 6–10 kHz if it feels sharp.',
+      'mix.air': 'Air band is light — a gentle 10 kHz+ shelf can add openness.',
+      'mix.compress': 'Wide dynamics — a light compressor (≈2:1, 3–6 dB gain reduction) will even it out.',
+      'mix.flat': 'Dynamics are already flat — avoid stacking more compression.',
+      'mix.ok': 'Spectrum and dynamics look balanced; no obvious corrective move needed.',
     };
     const ZH = {
       'panel.title': '声生观察台',
@@ -101,12 +118,31 @@ window.__ModuleLoader__.load({
       'health.advice.ok': '各项指标在常见范围内。记得热嗓、多喝水。',
       'health.advice.breathy': '气声偏多——可能是风格，也可能是疲劳；先休息，用有支撑的声音再试。',
       'health.advice.rough': '扰动偏高、噪声偏多；若持续，建议找嗓音科做专业评估。',
+      'band.low': '低频 20–250',
+      'band.lowmid': '中低 250–500',
+      'band.mid': '中 500–2k',
+      'band.highmid': '中高 2k–4k',
+      'band.high': '高频 4k–8k',
+      'band.air': '空气 8k–16k',
+      'tone.low': '能量偏低频——厚实、温暖。',
+      'tone.mid': '能量集中在中频——靠前、有存在感。',
+      'tone.high': '能量偏高频——明亮、通透。',
+      'mix.title': '混音建议',
+      'mix.low': '低频/中低偏多，容易浑浊——可高通 80–100Hz，或减 200–400Hz。',
+      'mix.deess': '中高频偏强，注意齿音——可在 5–8kHz 用 de-esser。',
+      'mix.bright': '高频偏亮，若听着刺耳，可压 6–10kHz。',
+      'mix.air': '空气感偏少——可在 10kHz 以上轻微提升，增加通透感。',
+      'mix.compress': '动态范围较大——可加轻度压缩（约 2:1，衰减 3–6dB）。',
+      'mix.flat': '动态已经比较平——不建议再叠压缩。',
+      'mix.ok': '频谱和动态比较均衡，没有明显的修正必要。',
     };
 
     const CSS = `
 .ss-root{display:flex;flex-direction:column;height:100%;min-height:0;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary)}
 .ss-header{display:flex;align-items:baseline;gap:10px;padding:16px 20px 10px;border-bottom:1px solid var(--dsw-alias-border-l1);flex:none}
 .ss-title{font-size:16px;font-weight:600}
+.ss-lang{margin-left:auto;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);font-size:11px;padding:3px 8px;border-radius:6px;cursor:pointer}
+.ss-lang:hover{color:var(--dsw-alias-label-primary)}
 .ss-sub{font-size:12px;color:var(--dsw-alias-label-secondary);padding:10px 20px 0;flex:none}
 .ss-body{flex:1;overflow:auto;padding:14px 20px 24px;min-height:0}
 .ss-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px dashed var(--dsw-alias-border-l2);border-radius:12px;padding:24px 16px;cursor:pointer;background:var(--dsw-alias-bg-layer-1);transition:border-color .15s,background .15s}
@@ -344,12 +380,12 @@ window.__ModuleLoader__.load({
       const binHz = sr / FFT_SIZE;
 
       const bandsDef = [
-        { name: 'Low 20–250', lo: 20, hi: 250 },
-        { name: 'Low-mid 250–500', lo: 250, hi: 500 },
-        { name: 'Mid 500–2k', lo: 500, hi: 2000 },
-        { name: 'High-mid 2k–4k', lo: 2000, hi: 4000 },
-        { name: 'High 4k–8k', lo: 4000, hi: 8000 },
-        { name: 'Air 8k–16k', lo: 8000, hi: 16000 },
+        { id: 'band.low', lo: 20, hi: 250 },
+        { id: 'band.lowmid', lo: 250, hi: 500 },
+        { id: 'band.mid', lo: 500, hi: 2000 },
+        { id: 'band.highmid', lo: 2000, hi: 4000 },
+        { id: 'band.high', lo: 4000, hi: 8000 },
+        { id: 'band.air', lo: 8000, hi: 16000 },
       ];
       const bandAccum = bandsDef.map(() => 0);
       let frameDbMax = -120;
@@ -422,7 +458,7 @@ window.__ModuleLoader__.load({
       const bandMax = Math.max(1e-12, ...bandAccum.map((x) => x / total));
       const bands = bandsDef.map((bd, i) => {
         const v = bandAccum[i] / total;
-        return { name: bd.name, lo: bd.lo, hi: bd.hi, pct: Math.round((v / bandMax) * 100) };
+        return { id: bd.id, lo: bd.lo, hi: bd.hi, pct: Math.round((v / bandMax) * 100) };
       });
 
       let range = null;
@@ -482,8 +518,19 @@ window.__ModuleLoader__.load({
         } catch (err) {
           t = (k) => EN[k] || k;
         }
+        let defaultLang = 'zh';
+        try {
+          const snap = ctx.locale.getLocale();
+          if (snap && snap.active && !String(snap.active).toLowerCase().startsWith('zh')) defaultLang = 'en';
+        } catch (e) {}
 
         function Panel() {
+          const [lang, setLang] = React.useState(defaultLang);
+          const t = (k) => {
+            const v = lang === 'zh' ? ZH[k] : EN[k];
+            if (v !== undefined) return v;
+            return EN[k] !== undefined ? EN[k] : k;
+          };
           const [tab, setTab] = React.useState('fit');
           const [meta, setMeta] = React.useState(null);
           const [buffer, setBuffer] = React.useState(null);
@@ -663,9 +710,9 @@ window.__ModuleLoader__.load({
                 .slice()
                 .sort((a, b) => b.pct - a.pct)[0];
               if (!top) return '';
-              if (top.lo < 250) return 'energy sits low — chesty, warm';
-              if (top.lo < 2000) return 'energy sits in the mids — present, forward';
-              return 'energy sits high — bright, airy';
+              if (top.lo < 250) return t('tone.low');
+              if (top.lo < 2000) return t('tone.mid');
+              return t('tone.high');
             })();
             return h('div', null,
               h('div', { className: 'ss-grid2' },
@@ -690,8 +737,8 @@ window.__ModuleLoader__.load({
               ),
               h('div', { className: 'ss-card' },
                 h('b', null, t('bands.title')),
-                analysis.bands.map((b) => h('div', { className: 'ss-band', key: b.name },
-                  h('div', { className: 'ss-band-top' }, h('span', null, b.name), h('span', null, b.pct + '%')),
+                analysis.bands.map((b) => h('div', { className: 'ss-band', key: b.id },
+                  h('div', { className: 'ss-band-top' }, h('span', null, t(b.id)), h('span', null, b.pct + '%')),
                   h('div', { className: 'ss-band-track' }, h('div', { className: 'ss-band-fill', style: { width: b.pct + '%' } })),
                 )),
               ),
@@ -729,12 +776,39 @@ window.__ModuleLoader__.load({
             );
           };
 
-          const mixPane = () => h('div', { className: 'ss-card' }, h('b', null, t('tab.mix')), ' — ', t('mix.soon'));
+          const mixPane = () => {
+            if (!analysis) return h('div', { className: 'ss-card' }, h('b', null, t('tab.mix')), ' — ', t('mix.soon'));
+            const get = (id) => { const b = analysis.bands.find((x) => x.id === id); return b ? b.pct : 0; };
+            const low = get('band.low');
+            const lowmid = get('band.lowmid');
+            const highmid = get('band.highmid');
+            const high = get('band.high');
+            const air = get('band.air');
+            const recs = [];
+            if (low + lowmid > 150) recs.push(t('mix.low'));
+            if (highmid > 70) recs.push(t('mix.deess'));
+            if (high > 70) recs.push(t('mix.bright'));
+            if (air < 25) recs.push(t('mix.air'));
+            if (analysis.dynamicRange > 18) recs.push(t('mix.compress'));
+            else if (analysis.dynamicRange < 6) recs.push(t('mix.flat'));
+            if (!recs.length) recs.push(t('mix.ok'));
+            return h('div', { className: 'ss-card' },
+              h('b', null, t('mix.title')),
+              recs.map((r, i) => h('div', { className: 'ss-hint', key: i }, '• ' + r)),
+            );
+          };
 
           return h(React.Fragment, null,
             styleEl,
             h('div', { className: 'ss-root' },
-              h('div', { className: 'ss-header' }, h('div', { className: 'ss-title' }, t('panel.title'))),
+              h('div', { className: 'ss-header' },
+                h('div', { className: 'ss-title' }, t('panel.title')),
+                h('button', {
+                  type: 'button', className: 'ss-lang',
+                  title: lang === 'zh' ? 'Switch to English' : '切换到中文',
+                  onClick: () => setLang(lang === 'zh' ? 'en' : 'zh'),
+                }, lang === 'zh' ? 'EN' : '中文'),
+              ),
               h('div', { className: 'ss-sub' }, t('panel.sub')),
               h('div', { className: 'ss-body' },
                 h('div', {
