@@ -40,6 +40,20 @@ window.__ModuleLoader__.load({
       'spec.title': 'Spectrogram',
       'pitch.title': 'Pitch (F0)',
       'fit.tone': 'Tonal character',
+      'health.title': 'Voice quality',
+      'health.jitter': 'Jitter (period)',
+      'health.shimmer': 'Shimmer (amplitude)',
+      'health.hnr': 'HNR (harmonics/noise)',
+      'health.cpp': 'CPP (cepstral peak)',
+      'health.samples': 'Samples',
+      'health.indices': 'Reference indices (0–100)',
+      'health.stability': 'Stability',
+      'health.breath': 'Breathiness',
+      'health.grit': 'Grit',
+      'health.none': 'Not enough stable pitch to measure voice quality.',
+      'health.advice.ok': 'Indicators are in a common range. Keep warming up and hydrate.',
+      'health.advice.breathy': 'High breathiness — could be style or fatigue. Rest and try a supported tone.',
+      'health.advice.rough': 'Elevated perturbation / noise. If it persists, see a laryngologist.',
     };
     const ZH = {
       'panel.title': '声生观察台',
@@ -73,6 +87,20 @@ window.__ModuleLoader__.load({
       'spec.title': '频谱图',
       'pitch.title': '音高 (F0)',
       'fit.tone': '音色倾向',
+      'health.title': '嗓音质量',
+      'health.jitter': 'Jitter（周期扰动）',
+      'health.shimmer': 'Shimmer（振幅扰动）',
+      'health.hnr': 'HNR（谐噪比）',
+      'health.cpp': 'CPP（倒谱峰突出度）',
+      'health.samples': '样本数',
+      'health.indices': '参考指数（0–100）',
+      'health.stability': '稳定度',
+      'health.breath': '气声',
+      'health.grit': '颗粒感',
+      'health.none': '稳定音高太少，无法测量嗓音质量。',
+      'health.advice.ok': '各项指标在常见范围内。记得热嗓、多喝水。',
+      'health.advice.breathy': '气声偏多——可能是风格，也可能是疲劳；先休息，用有支撑的声音再试。',
+      'health.advice.rough': '扰动偏高、噪声偏多；若持续，建议找嗓音科做专业评估。',
     };
 
     const CSS = `
@@ -226,6 +254,82 @@ window.__ModuleLoader__.load({
       return out;
     }
 
+    function ifftInPlace(re, im) {
+      const n = re.length;
+      for (let i = 0; i < n; i++) im[i] = -im[i];
+      fftInPlace(re, im);
+      for (let i = 0; i < n; i++) { re[i] /= n; im[i] = -im[i] / n; }
+    }
+
+    function hnrOf(frame, sampleRate, f0) {
+      const tau0 = Math.round(sampleRate / f0);
+      if (tau0 < 2 || tau0 >= frame.length / 2) return 0;
+      let r0 = 0, rT = 0;
+      const n = frame.length - tau0;
+      for (let i = 0; i < n; i++) {
+        r0 += frame[i] * frame[i];
+        rT += frame[i] * frame[i + tau0];
+      }
+      if (r0 <= 0) return 0;
+      const r = rT / r0;
+      if (r <= 0) return 0;
+      if (r >= 0.9999) return 60;
+      return 10 * Math.log10(r / (1 - r));
+    }
+
+    function cppOf(frame, sampleRate, win) {
+      const N = frame.length;
+      const re = new Float64Array(N);
+      const im = new Float64Array(N);
+      for (let i = 0; i < N; i++) { re[i] = frame[i] * win[i]; im[i] = 0; }
+      fftInPlace(re, im);
+      const half = N >> 1;
+      const logMag = new Float64Array(N);
+      for (let b = 0; b <= half; b++) {
+        logMag[b] = Math.log(Math.sqrt(re[b] * re[b] + im[b] * im[b]) + 1e-12);
+      }
+      const cre = new Float64Array(N);
+      const cim = new Float64Array(N);
+      for (let b = 0; b < N; b++) cre[b] = logMag[b < half ? b : N - b];
+      ifftInPlace(cre, cim);
+      const qMin = Math.max(2, Math.floor(sampleRate / 500));
+      const qMax = Math.min(half, Math.floor(sampleRate / 60));
+      let peak = -Infinity, peakQ = -1;
+      for (let q = qMin; q <= qMax; q++) if (cre[q] > peak) { peak = cre[q]; peakQ = q; }
+      if (peakQ < 0) return 0;
+      let sum = 0, cnt = 0;
+      for (let q = qMin; q <= qMax; q++) if (Math.abs(q - peakQ) > 2) { sum += cre[q]; cnt++; }
+      const base = cnt ? sum / cnt : 0;
+      return (peak - base) * 8.6858;
+    }
+
+    const clamp100 = (v) => Math.max(0, Math.min(100, v));
+
+    function computeVoice(pitches) {
+      const ok = pitches.filter((p) => p.conf > 0.5 && p.f0 > 0);
+      if (ok.length < 8) return null;
+      const jitterPairs = [];
+      const shimmerPairs = [];
+      for (let i = 1; i < ok.length; i++) {
+        const a = ok[i - 1], b = ok[i];
+        if (Math.abs(a.midi - b.midi) > 0.7) continue;
+        if (b.t - a.t > 0.2) continue;
+        const Ta = 1 / a.f0, Tb = 1 / b.f0;
+        jitterPairs.push(Math.abs(Ta - Tb) / ((Ta + Tb) / 2));
+        const Aa = Math.max(a.amp, 1e-9), Ab = Math.max(b.amp, 1e-9);
+        shimmerPairs.push(Math.abs(Aa - Ab) / ((Aa + Ab) / 2));
+      }
+      const mean = (arr) => (arr.length ? arr.reduce((s, x) => s + x, 0) / arr.length : 0);
+      const jitter = mean(jitterPairs) * 100;
+      const shimmer = mean(shimmerPairs) * 100;
+      const hnr = mean(ok.map((p) => p.hnr));
+      const cpp = mean(ok.map((p) => p.cpp));
+      const breath = clamp100(100 - (hnr - 3) * 3.2);
+      const grit = clamp100(shimmer * 3.5 + jitter * 3);
+      const stability = clamp100(100 - (jitter * 30 + shimmer * 10));
+      return { jitter, shimmer, hnr, cpp, breath, grit, stability, samples: ok.length, pairs: jitterPairs.length };
+    }
+
     function analyzeBuffer(buffer) {
       const sr = buffer.sampleRate;
       const data = mixDown(buffer);
@@ -303,7 +407,13 @@ window.__ModuleLoader__.load({
           }
           const p = yinF0(raw, sr);
           if (p.f0 > 0 && p.conf > 0.3) {
-            pitches.push({ t: start / sr, f0: p.f0, midi: midiOf(p.f0) });
+            let amp = 0;
+            for (let i = 0; i < FFT_SIZE; i++) amp += raw[i] * raw[i];
+            amp = Math.sqrt(amp / FFT_SIZE);
+            pitches.push({
+              t: start / sr, f0: p.f0, midi: midiOf(p.f0), conf: p.conf, amp,
+              hnr: hnrOf(raw, sr, p.f0), cpp: cppOf(raw, sr, win),
+            });
           }
         }
       }
@@ -330,9 +440,10 @@ window.__ModuleLoader__.load({
       const peakDb = 20 * Math.log10(Math.max(peak, 1e-6));
       const rmsDb = 20 * Math.log10(Math.max(rms, 1e-6));
 
+      const voice = computeVoice(pitches);
       return {
         sr, frameCount, bins, hop, spec,
-        bands, range, pitches,
+        bands, range, pitches, voice,
         peakDb, rmsDb, dynamicRange: peakDb - rmsDb,
         duration: len / sr,
       };
@@ -587,10 +698,36 @@ window.__ModuleLoader__.load({
             );
           };
 
-          const healthPane = () => h('div', { className: 'ss-card' },
-            h('b', null, t('tab.health')), ' — ', t('health.soon'),
-            h('div', { className: 'ss-hint' }, t('health.note')),
-          );
+          const healthPane = () => {
+            const v = analysis && analysis.voice;
+            if (!v) {
+              return h('div', { className: 'ss-card' },
+                h('b', null, t('tab.health')), ' — ', t('health.none'),
+                h('div', { className: 'ss-hint' }, t('health.note')),
+              );
+            }
+            let adviceKey = 'health.advice.ok';
+            if (v.hnr < 10 || v.jitter > 2) adviceKey = 'health.advice.rough';
+            else if (v.breath > 60) adviceKey = 'health.advice.breathy';
+            const row = (label, value) => h('div', { className: 'ss-kv' }, h('span', null, label), h('b', null, value));
+            return h('div', null,
+              h('div', { className: 'ss-card' },
+                h('b', null, t('health.title')),
+                row(t('health.jitter'), v.jitter.toFixed(2) + ' %'),
+                row(t('health.shimmer'), v.shimmer.toFixed(2) + ' %'),
+                row(t('health.hnr'), v.hnr.toFixed(1) + ' dB'),
+                row(t('health.samples'), String(v.samples)),
+              ),
+              h('div', { className: 'ss-card' },
+                h('b', null, t('health.indices')),
+                row(t('health.stability'), Math.round(v.stability) + '/100'),
+                row(t('health.breath'), Math.round(v.breath) + '/100'),
+                row(t('health.grit'), Math.round(v.grit) + '/100'),
+              ),
+              h('div', { className: 'ss-hint' }, t(adviceKey)),
+              h('div', { className: 'ss-hint' }, t('health.note')),
+            );
+          };
 
           const mixPane = () => h('div', { className: 'ss-card' }, h('b', null, t('tab.mix')), ' — ', t('mix.soon'));
 
