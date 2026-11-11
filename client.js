@@ -71,6 +71,43 @@ window.__ModuleLoader__.load({
       'mix.compress': 'Wide dynamics — a light compressor (≈2:1, 3–6 dB gain reduction) will even it out.',
       'mix.flat': 'Dynamics are already flat — avoid stacking more compression.',
       'mix.ok': 'Spectrum and dynamics look balanced; no obvious corrective move needed.',
+      'fit.adviceTitle': 'Style & singing tips',
+      'fit.styles': 'Fits these genres',
+      'fit.dos': 'How to sing it',
+      'fit.donts': 'What to avoid',
+      'feat.wide': 'wide range',
+      'feat.low': 'solid low end',
+      'feat.high': 'strong highs',
+      'feat.chest': 'warm, chesty',
+      'feat.forward': 'forward mids',
+      'feat.bright': 'bright top',
+      'feat.clean': 'clean tone',
+      'feat.breathy': 'breathy',
+      'feat.gritty': 'gritty',
+      'feat.unstable': 'needs stability',
+      'feat.neutral': 'balanced tone',
+      'style.folk': 'folk / narrative pop',
+      'style.ballad': 'emotional ballads',
+      'style.rock': 'rock / blues',
+      'style.blues': 'blues',
+      'style.rnb': 'R&B / soul',
+      'style.jazz': 'jazz / smooth jazz',
+      'style.pop': 'pop / electro-pop',
+      'style.acg': 'anime / ACG songs',
+      'style.musical': 'musical theatre',
+      'do.chest': 'Use chest support; keep the larynx stable.',
+      'do.grit': 'Use controlled grit; never press the throat for long.',
+      'do.breath': 'Keep the breathy detail, but control air leakage.',
+      'do.warm': 'Warm up before highs; bridge with mixed voice.',
+      'do.range': 'Use your range for emotional dynamics.',
+      'do.longtone': 'Practice long tones and support to steady it.',
+      'do.clean': 'Lean into the clean, focused tone.',
+      'dont.shout': 'Do not shout or force high notes for long.',
+      'dont.airy': 'Do not over-air it — pitch will drift.',
+      'dont.push': 'Do not press the larynx low just for weight.',
+      'dont.thin': 'Do not squeeze the top thin.',
+      'dont.strain': 'Do not strain past your comfort zone.',
+      'dont.fast': 'Avoid fast, showy songs until stable.',
     };
     const ZH = {
       'panel.title': '声生观察台',
@@ -135,6 +172,43 @@ window.__ModuleLoader__.load({
       'mix.compress': '动态范围较大——可加轻度压缩（约 2:1，衰减 3–6dB）。',
       'mix.flat': '动态已经比较平——不建议再叠压缩。',
       'mix.ok': '频谱和动态比较均衡，没有明显的修正必要。',
+      'fit.adviceTitle': '风格与演唱建议',
+      'fit.styles': '适合的曲风',
+      'fit.dos': '可以这样唱',
+      'fit.donts': '不要这样唱',
+      'feat.wide': '音域较宽',
+      'feat.low': '低音扎实',
+      'feat.high': '高音能力好',
+      'feat.chest': '中低频厚实',
+      'feat.forward': '中频靠前',
+      'feat.bright': '高频明亮',
+      'feat.clean': '嗓音干净',
+      'feat.breathy': '气声感明显',
+      'feat.gritty': '颗粒感强',
+      'feat.unstable': '稳定性待加强',
+      'feat.neutral': '音色均衡',
+      'style.folk': '民谣 / 叙事型流行（像抱着吉他讲故事）',
+      'style.ballad': '抒情慢歌（情感铺陈、长音为主）',
+      'style.rock': '摇滚 / 蓝调（有力量的颗粒与嘶吼）',
+      'style.blues': '蓝调（摇摆、有故事感）',
+      'style.rnb': 'R&B / 灵魂乐（细腻转音、气声）',
+      'style.jazz': '爵士 / 轻爵士（摇摆、即兴）',
+      'style.pop': '流行 / 电子流行（旋律抓耳）',
+      'style.acg': 'ACG / 动画歌曲（高音与情绪起伏）',
+      'style.musical': '音乐剧（戏剧化表达、大动态）',
+      'do.chest': '多用胸腔支撑，保持喉位稳定。',
+      'do.grit': '用可控的颗粒，别长期压嗓。',
+      'do.breath': '保留气声的细腻，但控制漏气。',
+      'do.warm': '高音前先热嗓，用混声过渡。',
+      'do.range': '利用音域优势做情绪起伏。',
+      'do.longtone': '慢练长音和气息支撑，提升稳定度。',
+      'do.clean': '发挥干净、集中的音色。',
+      'dont.shout': '不要长时间嘶吼、硬喊高音。',
+      'dont.airy': '不要过度气声导致音准发飘。',
+      'dont.push': '不要一味压低喉位制造厚重。',
+      'dont.thin': '不要挤高位置把声音挤薄。',
+      'dont.strain': '不要勉强够超出舒适区的高音。',
+      'dont.fast': '不稳定时先别挑战快歌炫技。',
     };
 
     const CSS = `
@@ -171,6 +245,10 @@ window.__ModuleLoader__.load({
 .ss-card{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:10px;padding:14px 16px;font-size:13px;line-height:1.6;color:var(--dsw-alias-label-secondary)}
 .ss-card b{color:var(--dsw-alias-label-primary)}
 .ss-card + .ss-card{margin-top:12px}
+.ss-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
+.ss-chip{font-size:11px;padding:3px 8px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary)}
+.ss-adv{margin-top:10px}
+.ss-adv b{display:block;margin-bottom:4px}
 .ss-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .ss-kv{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:12px}
 .ss-kv span{color:var(--dsw-alias-label-secondary)}
@@ -371,6 +449,49 @@ window.__ModuleLoader__.load({
       const grit = clamp100(shimmer * 3.5 + jitter * 3);
       const stability = clamp100(100 - (jitter * 30 + shimmer * 10));
       return { jitter, shimmer, hnr, cpp, breath, grit, stability, samples: ok.length, pairs: jitterPairs.length };
+    }
+
+    function buildFitAdvice(a) {
+      const feats = [];
+      const styles = [];
+      const dos = [];
+      const donts = [];
+      const add = (arr, k) => { if (arr.indexOf(k) === -1) arr.push(k); };
+      if (a.range) {
+        const span = 12 * Math.log2(a.range.high / a.range.low);
+        if (span >= 18) add(feats, 'feat.wide');
+        if (a.range.low < 110) add(feats, 'feat.low');
+        if (a.range.high > 500) add(feats, 'feat.high');
+      }
+      const pct = {};
+      (a.bands || []).forEach((b) => { pct[b.id] = b.pct; });
+      const low = (pct['band.low'] || 0) + (pct['band.lowmid'] || 0);
+      const mid = pct['band.mid'] || 0;
+      const bright = (pct['band.highmid'] || 0) + (pct['band.air'] || 0);
+      if (low > 150) add(feats, 'feat.chest');
+      if (mid > 80) add(feats, 'feat.forward');
+      if (bright > 120) add(feats, 'feat.bright');
+      const v = a.voice;
+      if (v) {
+        if (v.hnr >= 20) add(feats, 'feat.clean');
+        if (v.breath >= 60) add(feats, 'feat.breathy');
+        if (v.grit >= 45) add(feats, 'feat.gritty');
+        if (v.jitter > 2 || v.shimmer > 8) add(feats, 'feat.unstable');
+      }
+      if (feats.length === 0) add(feats, 'feat.neutral');
+
+      const has = (k) => feats.indexOf(k) >= 0;
+      if (has('feat.gritty')) { add(styles, 'style.rock'); add(styles, 'style.blues'); add(dos, 'do.grit'); add(donts, 'dont.shout'); }
+      if (has('feat.breathy')) { add(styles, 'style.rnb'); add(styles, 'style.jazz'); add(dos, 'do.breath'); add(donts, 'dont.airy'); }
+      if (has('feat.chest') || has('feat.low')) { add(styles, 'style.folk'); add(styles, 'style.ballad'); add(dos, 'do.chest'); add(donts, 'dont.push'); }
+      if (has('feat.bright') || has('feat.high')) { add(styles, 'style.pop'); add(styles, 'style.acg'); add(dos, 'do.warm'); add(donts, 'dont.thin'); }
+      if (has('feat.wide')) { add(styles, 'style.musical'); add(dos, 'do.range'); add(donts, 'dont.strain'); }
+      if (has('feat.clean')) add(dos, 'do.clean');
+      if (has('feat.unstable')) { add(dos, 'do.longtone'); add(donts, 'dont.fast'); }
+      if (!styles.length) add(styles, 'style.pop');
+      if (!dos.length) add(dos, 'do.chest');
+      if (!donts.length) add(donts, 'dont.strain');
+      return { feats, styles, dos, donts };
     }
 
     function analyzeBuffer(buffer) {
@@ -799,6 +920,7 @@ window.__ModuleLoader__.load({
           const fitPane = () => {
             if (!analysis) return h('div', { className: 'ss-card' }, t('fit.soon'));
             const r = analysis.range;
+            const advice = buildFitAdvice(analysis);
             const tone = (() => {
               if (!analysis.bands) return '';
               const top = analysis.bands
@@ -837,6 +959,13 @@ window.__ModuleLoader__.load({
                   h('div', { className: 'ss-band-top' }, h('span', null, t(b.id)), h('span', null, b.pct + '%')),
                   h('div', { className: 'ss-band-track' }, h('div', { className: 'ss-band-fill', style: { width: b.pct + '%' } })),
                 )),
+              ),
+              h('div', { className: 'ss-card' },
+                h('b', null, t('fit.adviceTitle')),
+                h('div', { className: 'ss-chips' }, (advice.feats || []).map((k) => h('span', { className: 'ss-chip', key: k }, t(k)))),
+                h('div', { className: 'ss-adv' }, h('b', null, t('fit.styles')), (advice.styles || []).map((k) => h('div', { className: 'ss-hint', key: k }, '• ' + t(k)))),
+                h('div', { className: 'ss-adv' }, h('b', null, t('fit.dos')), (advice.dos || []).map((k) => h('div', { className: 'ss-hint', key: k }, '✓ ' + t(k)))),
+                h('div', { className: 'ss-adv' }, h('b', null, t('fit.donts')), (advice.donts || []).map((k) => h('div', { className: 'ss-hint', key: k }, '✕ ' + t(k)))),
               ),
             );
           };
