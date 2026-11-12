@@ -140,6 +140,11 @@ window.__ModuleLoader__.load({
       'skill.chars': '{n} characters',
       'skill.error': 'Could not read the skill file',
       'skill.refTitle': 'From your style skill',
+      'chat.title': 'Ask about your voice',
+      'chat.empty': 'Import a style skill, then ask: what genre suits me? How should I arrange this song?',
+      'chat.placeholder': 'Ask anything…',
+      'chat.send': 'Send',
+      'chat.thinking': 'Thinking…',
     };
     const ZH = {
       'panel.title': '声生观察台',
@@ -273,6 +278,11 @@ window.__ModuleLoader__.load({
       'skill.chars': '{n} 字',
       'skill.error': '读取 skill 文件失败',
       'skill.refTitle': '来自你的风格 skill',
+      'chat.title': '问一问：我的声音',
+      'chat.empty': '导入风格 skill 后，可以直接问：我适合什么曲风？这首歌该怎么配器？',
+      'chat.placeholder': '问点什么…',
+      'chat.send': '发送',
+      'chat.thinking': '思考中…',
     };
 
     const CSS = `
@@ -314,6 +324,13 @@ window.__ModuleLoader__.load({
 .ss-adv{margin-top:10px}
 .ss-adv b{display:block;margin-bottom:4px}
 .ss-skill-actions{display:flex;gap:8px;margin-top:8px}
+.ss-chat{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow:auto;margin-top:10px}
+.ss-msg{font-size:12px;line-height:1.6;padding:8px 10px;border-radius:10px;white-space:pre-wrap;word-break:break-word}
+.ss-msg.user{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);align-self:flex-end;max-width:88%}
+.ss-msg.assistant{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary);align-self:flex-start;max-width:92%}
+.ss-chatbar{display:flex;gap:8px;margin-top:10px}
+.ss-chatinput{flex:1;min-width:0;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-primary);border-radius:8px;padding:7px 10px;font-size:12px;outline:none}
+.ss-chatinput:focus{border-color:var(--dsw-alias-brand-primary)}
 .ss-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .ss-kv{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:12px}
 .ss-kv span{color:var(--dsw-alias-label-secondary)}
@@ -780,6 +797,9 @@ window.__ModuleLoader__.load({
           const [dragging, setDragging] = React.useState(false);
           const [skillText, setSkillText] = React.useState(() => { try { return window.localStorage.getItem('ss-skill-text') || ''; } catch (e) { return ''; } });
           const [skillName, setSkillName] = React.useState(() => { try { return window.localStorage.getItem('ss-skill-name') || ''; } catch (e) { return ''; } });
+          const [chat, setChat] = React.useState(() => { try { const v = JSON.parse(window.localStorage.getItem('ss-chat') || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } });
+          const [chatInput, setChatInput] = React.useState('');
+          const [chatLoading, setChatLoading] = React.useState(false);
           const skillInputRef = React.useRef(null);
           const skillFolderRef = React.useRef(null);
           const canvasRef = React.useRef(null);
@@ -1053,6 +1073,33 @@ window.__ModuleLoader__.load({
             try { window.localStorage.removeItem('ss-skill-text'); window.localStorage.removeItem('ss-skill-name'); } catch (e) {}
           };
 
+          const sendChat = async () => {
+            const q = chatInput.trim();
+            if (!q || chatLoading) return;
+            const next = chat.concat([{ role: 'user', text: q }]);
+            setChat(next);
+            setChatInput('');
+            setChatLoading(true);
+            try {
+              const res = await fetch('/shengsheng-observer/api/chat', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ skill: skillText, question: q, history: chat }),
+              });
+              const data = await res.json().catch(() => ({}));
+              if (!res.ok) throw new Error(data && data.error ? data.error : ('HTTP ' + res.status));
+              const done = next.concat([{ role: 'assistant', text: String(data.reply || '') }]);
+              setChat(done);
+              try { window.localStorage.setItem('ss-chat', JSON.stringify(done)); } catch (e) {}
+            } catch (e) {
+              const failed = next.concat([{ role: 'assistant', text: '（出错：' + ((e && e.message) || e) + '）' }]);
+              setChat(failed);
+              try { window.localStorage.setItem('ss-chat', JSON.stringify(failed)); } catch (err) {}
+            } finally {
+              setChatLoading(false);
+            }
+          };
+
           const onPick = () => inputRef.current && inputRef.current.click();
           const onDrop = (e) => {
             e.preventDefault();
@@ -1170,6 +1217,24 @@ window.__ModuleLoader__.load({
             skillText ? h('div', { className: 'ss-hint' }, t('skill.chars').replace('{n}', String(skillText.length))) : null,
           );
 
+          const chatCard = () => h('div', { className: 'ss-card' },
+            h('b', null, t('chat.title')),
+            h('div', { className: 'ss-chat' },
+              chat.length === 0
+                ? h('div', { className: 'ss-hint' }, t('chat.empty'))
+                : chat.map((m, i) => h('div', { className: 'ss-msg ' + m.role, key: i }, m.text)),
+              chatLoading ? h('div', { className: 'ss-msg assistant' }, t('chat.thinking')) : null,
+            ),
+            h('div', { className: 'ss-chatbar' },
+              h('input', {
+                className: 'ss-chatinput', value: chatInput, placeholder: t('chat.placeholder'),
+                onChange: (e) => setChatInput(e.target.value),
+                onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } },
+              }),
+              h('button', { type: 'button', className: 'ss-lang', onClick: sendChat, disabled: chatLoading }, t('chat.send')),
+            ),
+          );
+
           const mixPane = () => {
             if (!analysis) {
               return h('div', null,
@@ -1192,7 +1257,6 @@ window.__ModuleLoader__.load({
             else if (analysis.dynamicRange < 6) recs.push(t('mix.flat'));
             if (!recs.length) recs.push(t('mix.ok'));
             const prod = buildProductionAdvice(analysis);
-            const hints = skillHints(skillText);
             return h('div', null,
               h('div', { className: 'ss-card' },
                 h('b', null, t('mix.title')),
@@ -1205,10 +1269,7 @@ window.__ModuleLoader__.load({
                 h('div', { className: 'ss-adv' }, h('b', null, t('prod.avoid')), prod.avoid.map((k) => h('div', { className: 'ss-hint', key: k }, '✕ ' + t(k)))),
               ),
               skillCard(),
-              hints.length ? h('div', { className: 'ss-card' },
-                h('b', null, t('skill.refTitle')),
-                hints.map((line, i) => h('div', { className: 'ss-hint', key: i }, '• ' + line)),
-              ) : null,
+              chatCard(),
             );
           };
 
