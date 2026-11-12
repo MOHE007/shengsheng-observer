@@ -134,6 +134,8 @@ window.__ModuleLoader__.load({
       'skill.hint': 'Import a style-teaching skill (.md/.txt). It will be used as reference in the Production tab.',
       'skill.loaded': 'Skill loaded.',
       'skill.import': 'Import skill',
+      'skill.importFolder': 'Import folder',
+      'skill.loadedName': 'Loaded from {name}',
       'skill.clear': 'Remove',
       'skill.chars': '{n} characters',
       'skill.error': 'Could not read the skill file',
@@ -265,6 +267,8 @@ window.__ModuleLoader__.load({
       'skill.hint': '导入一个风格教学 skill（.md/.txt），会在「制作」里作为参考。',
       'skill.loaded': '已导入风格 skill。',
       'skill.import': '导入 skill',
+      'skill.importFolder': '导入文件夹',
+      'skill.loadedName': '已导入：{name}',
       'skill.clear': '移除',
       'skill.chars': '{n} 字',
       'skill.error': '读取 skill 文件失败',
@@ -775,7 +779,9 @@ window.__ModuleLoader__.load({
           const [error, setError] = React.useState('');
           const [dragging, setDragging] = React.useState(false);
           const [skillText, setSkillText] = React.useState(() => { try { return window.localStorage.getItem('ss-skill-text') || ''; } catch (e) { return ''; } });
+          const [skillName, setSkillName] = React.useState(() => { try { return window.localStorage.getItem('ss-skill-name') || ''; } catch (e) { return ''; } });
           const skillInputRef = React.useRef(null);
+          const skillFolderRef = React.useRef(null);
           const canvasRef = React.useRef(null);
           const specRef = React.useRef(null);
           const pitchRef = React.useRef(null);
@@ -1023,9 +1029,28 @@ window.__ModuleLoader__.load({
               setError(t('skill.error') + ' — ' + (e && e.message ? e.message : String(e)));
             }
           };
+          const onSkillFolder = async (files) => {
+            const list = Array.from(files || []);
+            if (!list.length) return;
+            const isText = (f) => /\.(md|markdown|txt)$/i.test(f.name);
+            let target = list.find((f) => /(^|\/)SKILL\.md$/i.test(f.webkitRelativePath || f.name));
+            if (!target) target = list.find((f) => /(^|\/)README\.md$/i.test(f.webkitRelativePath || f.name));
+            if (!target) target = list.find(isText);
+            if (!target) { setError(t('skill.error')); return; }
+            try {
+              const txt = await target.text();
+              setSkillText(txt);
+              const folder = (target.webkitRelativePath || '').split('/')[0] || target.name;
+              setSkillName(folder);
+              try { window.localStorage.setItem('ss-skill-text', txt); window.localStorage.setItem('ss-skill-name', folder); } catch (e) {}
+            } catch (e) {
+              setError(t('skill.error') + ' — ' + (e && e.message ? e.message : String(e)));
+            }
+          };
           const clearSkill = () => {
             setSkillText('');
-            try { window.localStorage.removeItem('ss-skill-text'); } catch (e) {}
+            setSkillName('');
+            try { window.localStorage.removeItem('ss-skill-text'); window.localStorage.removeItem('ss-skill-name'); } catch (e) {}
           };
 
           const onPick = () => inputRef.current && inputRef.current.click();
@@ -1128,14 +1153,19 @@ window.__ModuleLoader__.load({
 
           const skillCard = () => h('div', { className: 'ss-card' },
             h('b', null, t('skill.title')),
-            h('div', { className: 'ss-hint' }, skillText ? t('skill.loaded') : t('skill.hint')),
+            h('div', { className: 'ss-hint' }, skillText ? (skillName ? t('skill.loadedName').replace('{name}', skillName) : t('skill.loaded')) : t('skill.hint')),
             h('div', { className: 'ss-skill-actions' },
               h('button', { type: 'button', className: 'ss-lang', onClick: () => skillInputRef.current && skillInputRef.current.click() }, t('skill.import')),
+              h('button', { type: 'button', className: 'ss-lang', onClick: () => skillFolderRef.current && skillFolderRef.current.click() }, t('skill.importFolder')),
               skillText ? h('button', { type: 'button', className: 'ss-lang', onClick: clearSkill }, t('skill.clear')) : null,
             ),
             h('input', {
               ref: skillInputRef, type: 'file', accept: '.md,.txt,.json,.markdown', style: { display: 'none' },
               onChange: (e) => { const f = e.target.files && e.target.files[0]; if (f) onSkillFile(f); e.target.value = ''; },
+            }),
+            h('input', {
+              ref: skillFolderRef, type: 'file', webkitdirectory: '', directory: '', multiple: true, style: { display: 'none' },
+              onChange: (e) => { const fs = e.target.files; if (fs && fs.length) onSkillFolder(fs); e.target.value = ''; },
             }),
             skillText ? h('div', { className: 'ss-hint' }, t('skill.chars').replace('{n}', String(skillText.length))) : null,
           );
