@@ -108,6 +108,36 @@ window.__ModuleLoader__.load({
       'dont.thin': 'Do not squeeze the top thin.',
       'dont.strain': 'Do not strain past your comfort zone.',
       'dont.fast': 'Avoid fast, showy songs until stable.',
+      'prod.title': 'Arrangement ideas',
+      'prod.inst': 'Instrument ideas',
+      'prod.arr': 'Arrangement moves',
+      'prod.avoid': 'Avoid',
+      'inst.acoustic': 'acoustic guitar / piano / strings',
+      'inst.synth': 'synth pads / electronic drums',
+      'inst.ambient': 'fingerpicked guitar / ambient pads / light percussion',
+      'inst.rock': 'distorted guitar / live drums / bass',
+      'arr.leave-low': 'Leave low-end room for the voice.',
+      'arr.high-space': 'Add high-end sparkle without masking the vocal.',
+      'arr.short-reverb': 'Use short reverb/delay to keep breath detail.',
+      'arr.rock': 'Let drums and bass carry the groove; build to full in the chorus.',
+      'arr.dynamic': 'Arrange dynamics by section (verse down, chorus up).',
+      'arr.sparse': 'Keep it sparse to feature the clean voice.',
+      'arr.breath': 'Leave breathing room; do not fill every bar.',
+      'arr.leave-mid': 'Carve a mid-range pocket (500–2k) for the vocal.',
+      'arr.avoid-bass': 'Avoid stacking too much low end (bass/kick).',
+      'arr.avoid-harsh': 'Avoid harsh, piercing high-end timbres.',
+      'arr.avoid-long-reverb': 'Avoid long reverb that smears the breathy detail.',
+      'arr.avoid-density': 'Avoid dense arrangements that make grit sound noisy.',
+      'arr.avoid-flat': 'Avoid flat, single-level arrangements.',
+      'arr.avoid-dense': 'Avoid wall-to-wall arrangements with no air.',
+      'skill.title': 'Style skill',
+      'skill.hint': 'Import a style-teaching skill (.md/.txt). It will be used as reference in the Production tab.',
+      'skill.loaded': 'Skill loaded.',
+      'skill.import': 'Import skill',
+      'skill.clear': 'Remove',
+      'skill.chars': '{n} characters',
+      'skill.error': 'Could not read the skill file',
+      'skill.refTitle': 'From your style skill',
     };
     const ZH = {
       'panel.title': '声生观察台',
@@ -209,6 +239,36 @@ window.__ModuleLoader__.load({
       'dont.thin': '不要挤高位置把声音挤薄。',
       'dont.strain': '不要勉强够超出舒适区的高音。',
       'dont.fast': '不稳定时先别挑战快歌炫技。',
+      'prod.title': '配器与编曲建议',
+      'prod.inst': '乐器/音色推荐',
+      'prod.arr': '编曲与频段安排',
+      'prod.avoid': '避免',
+      'inst.acoustic': '木吉他 / 钢琴 / 弦乐等原声乐器',
+      'inst.synth': '合成器铺底 / 电子鼓点缀',
+      'inst.ambient': '指弹吉他 / 氛围 pad / 轻打击',
+      'inst.rock': '失真吉他 / 实鼓 / 贝斯',
+      'arr.leave-low': '伴奏低频让位，给人声留出胸腔空间。',
+      'arr.high-space': '高频适当点缀，别盖住人声的亮度。',
+      'arr.short-reverb': '用短混响/延迟，保留气声细节。',
+      'arr.rock': '鼓和贝斯撑节奏，副歌再进满。',
+      'arr.dynamic': '按段落做动态（主歌收、副歌放）。',
+      'arr.sparse': '编曲精简，突出干净的人声。',
+      'arr.breath': '给换气留空，别把每一小节都铺满。',
+      'arr.leave-mid': '中频（500–2k）给伴奏做避让。',
+      'arr.avoid-bass': '避免低频乐器堆太满（贝斯/大鼓）。',
+      'arr.avoid-harsh': '避免刺耳的高频音色。',
+      'arr.avoid-long-reverb': '避免长混响把气声糊掉。',
+      'arr.avoid-density': '避免编曲过密，颗粒会变吵。',
+      'arr.avoid-flat': '避免全程一个力度平铺。',
+      'arr.avoid-dense': '避免编曲塞满、没有呼吸。',
+      'skill.title': '风格 skill',
+      'skill.hint': '导入一个风格教学 skill（.md/.txt），会在「制作」里作为参考。',
+      'skill.loaded': '已导入风格 skill。',
+      'skill.import': '导入 skill',
+      'skill.clear': '移除',
+      'skill.chars': '{n} 字',
+      'skill.error': '读取 skill 文件失败',
+      'skill.refTitle': '来自你的风格 skill',
     };
 
     const CSS = `
@@ -249,6 +309,7 @@ window.__ModuleLoader__.load({
 .ss-chip{font-size:11px;padding:3px 8px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary)}
 .ss-adv{margin-top:10px}
 .ss-adv b{display:block;margin-bottom:4px}
+.ss-skill-actions{display:flex;gap:8px;margin-top:8px}
 .ss-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .ss-kv{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:12px}
 .ss-kv span{color:var(--dsw-alias-label-secondary)}
@@ -494,6 +555,53 @@ window.__ModuleLoader__.load({
       return { feats, styles, dos, donts };
     }
 
+    function buildProductionAdvice(a) {
+      const feats = [];
+      const add = (arr, k) => { if (arr.indexOf(k) === -1) arr.push(k); };
+      const pct = {};
+      (a.bands || []).forEach((b) => { pct[b.id] = b.pct; });
+      const low = (pct['band.low'] || 0) + (pct['band.lowmid'] || 0);
+      const mid = pct['band.mid'] || 0;
+      const bright = (pct['band.highmid'] || 0) + (pct['band.air'] || 0);
+      const v = a.voice || {};
+      if (low > 150) add(feats, 'feat.chest');
+      if (mid > 80) add(feats, 'feat.forward');
+      if (bright > 120) add(feats, 'feat.bright');
+      if (v.breath >= 60) add(feats, 'feat.breathy');
+      if (v.grit >= 45) add(feats, 'feat.gritty');
+      if (v.hnr && v.hnr >= 20) add(feats, 'feat.clean');
+      if (v.jitter > 2 || v.shimmer > 8) add(feats, 'feat.unstable');
+      if (a.range) {
+        const span = 12 * Math.log2(a.range.high / a.range.low);
+        if (span >= 18) add(feats, 'feat.wide');
+      }
+
+      const inst = [];
+      const arr = [];
+      const avoid = [];
+      const has = (k) => feats.indexOf(k) >= 0;
+      if (has('feat.chest')) { add(inst, 'inst.acoustic'); add(arr, 'arr.leave-low'); add(avoid, 'arr.avoid-bass'); }
+      if (has('feat.bright')) { add(inst, 'inst.synth'); add(arr, 'arr.high-space'); add(avoid, 'arr.avoid-harsh'); }
+      if (has('feat.breathy')) { add(inst, 'inst.ambient'); add(arr, 'arr.short-reverb'); add(avoid, 'arr.avoid-long-reverb'); }
+      if (has('feat.gritty')) { add(inst, 'inst.rock'); add(arr, 'arr.rock'); add(avoid, 'arr.avoid-density'); }
+      if (has('feat.wide')) { add(arr, 'arr.dynamic'); add(avoid, 'arr.avoid-flat'); }
+      if (has('feat.clean')) add(arr, 'arr.sparse');
+      if (has('feat.unstable')) { add(arr, 'arr.breath'); add(avoid, 'arr.avoid-dense'); }
+      if (mid > 80) add(arr, 'arr.leave-mid');
+      if (!inst.length) add(inst, 'inst.acoustic');
+      if (!arr.length) add(arr, 'arr.leave-mid');
+      if (!avoid.length) add(avoid, 'arr.avoid-harsh');
+      return { inst, arr, avoid, feats };
+    }
+
+    function skillHints(text) {
+      if (!text) return [];
+      const lines = text.split(/\r?\n/).map((s) => s.trim()).filter((s) => s.length > 8 && s.length < 160);
+      const kw = ['配器', '乐器', '频段', '混音', '编曲', '风格', '和弦', '鼓', '贝斯', '吉他', '钢琴', '人声', 'arrange', 'mix', 'instrument'];
+      const hits = lines.filter((l) => kw.some((k) => l.toLowerCase().indexOf(k) !== -1));
+      return hits.slice(0, 4);
+    }
+
     function analyzeBuffer(buffer) {
       const sr = buffer.sampleRate;
       const data = mixDown(buffer);
@@ -666,6 +774,8 @@ window.__ModuleLoader__.load({
           const [analyzing, setAnalyzing] = React.useState(false);
           const [error, setError] = React.useState('');
           const [dragging, setDragging] = React.useState(false);
+          const [skillText, setSkillText] = React.useState(() => { try { return window.localStorage.getItem('ss-skill-text') || ''; } catch (e) { return ''; } });
+          const skillInputRef = React.useRef(null);
           const canvasRef = React.useRef(null);
           const specRef = React.useRef(null);
           const pitchRef = React.useRef(null);
@@ -903,6 +1013,21 @@ window.__ModuleLoader__.load({
             g.stroke();
           }, [analysis]);
 
+          const onSkillFile = async (f) => {
+            if (!f) return;
+            try {
+              const txt = await f.text();
+              setSkillText(txt);
+              try { window.localStorage.setItem('ss-skill-text', txt); } catch (e) {}
+            } catch (e) {
+              setError(t('skill.error') + ' — ' + (e && e.message ? e.message : String(e)));
+            }
+          };
+          const clearSkill = () => {
+            setSkillText('');
+            try { window.localStorage.removeItem('ss-skill-text'); } catch (e) {}
+          };
+
           const onPick = () => inputRef.current && inputRef.current.click();
           const onDrop = (e) => {
             e.preventDefault();
@@ -1001,8 +1126,27 @@ window.__ModuleLoader__.load({
             );
           };
 
+          const skillCard = () => h('div', { className: 'ss-card' },
+            h('b', null, t('skill.title')),
+            h('div', { className: 'ss-hint' }, skillText ? t('skill.loaded') : t('skill.hint')),
+            h('div', { className: 'ss-skill-actions' },
+              h('button', { type: 'button', className: 'ss-lang', onClick: () => skillInputRef.current && skillInputRef.current.click() }, t('skill.import')),
+              skillText ? h('button', { type: 'button', className: 'ss-lang', onClick: clearSkill }, t('skill.clear')) : null,
+            ),
+            h('input', {
+              ref: skillInputRef, type: 'file', accept: '.md,.txt,.json,.markdown', style: { display: 'none' },
+              onChange: (e) => { const f = e.target.files && e.target.files[0]; if (f) onSkillFile(f); e.target.value = ''; },
+            }),
+            skillText ? h('div', { className: 'ss-hint' }, t('skill.chars').replace('{n}', String(skillText.length))) : null,
+          );
+
           const mixPane = () => {
-            if (!analysis) return h('div', { className: 'ss-card' }, h('b', null, t('tab.mix')), ' — ', t('mix.soon'));
+            if (!analysis) {
+              return h('div', null,
+                h('div', { className: 'ss-card' }, h('b', null, t('tab.mix')), ' — ', t('mix.soon')),
+                skillCard(),
+              );
+            }
             const get = (id) => { const b = analysis.bands.find((x) => x.id === id); return b ? b.pct : 0; };
             const low = get('band.low');
             const lowmid = get('band.lowmid');
@@ -1017,9 +1161,24 @@ window.__ModuleLoader__.load({
             if (analysis.dynamicRange > 18) recs.push(t('mix.compress'));
             else if (analysis.dynamicRange < 6) recs.push(t('mix.flat'));
             if (!recs.length) recs.push(t('mix.ok'));
-            return h('div', { className: 'ss-card' },
-              h('b', null, t('mix.title')),
-              recs.map((r, i) => h('div', { className: 'ss-hint', key: i }, '• ' + r)),
+            const prod = buildProductionAdvice(analysis);
+            const hints = skillHints(skillText);
+            return h('div', null,
+              h('div', { className: 'ss-card' },
+                h('b', null, t('mix.title')),
+                recs.map((r, i) => h('div', { className: 'ss-hint', key: i }, '• ' + r)),
+              ),
+              h('div', { className: 'ss-card' },
+                h('b', null, t('prod.title')),
+                h('div', { className: 'ss-adv' }, h('b', null, t('prod.inst')), prod.inst.map((k) => h('div', { className: 'ss-hint', key: k }, '• ' + t(k)))),
+                h('div', { className: 'ss-adv' }, h('b', null, t('prod.arr')), prod.arr.map((k) => h('div', { className: 'ss-hint', key: k }, '✓ ' + t(k)))),
+                h('div', { className: 'ss-adv' }, h('b', null, t('prod.avoid')), prod.avoid.map((k) => h('div', { className: 'ss-hint', key: k }, '✕ ' + t(k)))),
+              ),
+              skillCard(),
+              hints.length ? h('div', { className: 'ss-card' },
+                h('b', null, t('skill.refTitle')),
+                hints.map((line, i) => h('div', { className: 'ss-hint', key: i }, '• ' + line)),
+              ) : null,
             );
           };
 
