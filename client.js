@@ -145,6 +145,9 @@ window.__ModuleLoader__.load({
       'chat.placeholder': 'Ask anything…',
       'chat.send': 'Send',
       'chat.thinking': 'Thinking…',
+      'report.button': 'Export',
+      'report.title': 'Export report',
+      'report.wave': 'Waveform',
     };
     const ZH = {
       'panel.title': '声生观察台',
@@ -283,6 +286,9 @@ window.__ModuleLoader__.load({
       'chat.placeholder': '问点什么…',
       'chat.send': '发送',
       'chat.thinking': '思考中…',
+      'report.button': '导出报告',
+      'report.title': '导出报告',
+      'report.wave': '波形',
     };
 
     const CSS = `
@@ -291,6 +297,7 @@ window.__ModuleLoader__.load({
 .ss-title{font-size:16px;font-weight:600}
 .ss-lang{margin-left:auto;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);font-size:11px;padding:3px 8px;border-radius:6px;cursor:pointer}
 .ss-lang:hover{color:var(--dsw-alias-label-primary)}
+.ss-lang:disabled{opacity:.4;cursor:default}
 .ss-sub{font-size:12px;color:var(--dsw-alias-label-secondary);padding:10px 20px 0;flex:none}
 .ss-body{flex:1;overflow:auto;padding:14px 20px 24px;min-height:0}
 .ss-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px dashed var(--dsw-alias-border-l2);border-radius:12px;padding:24px 16px;cursor:pointer;background:var(--dsw-alias-bg-layer-1);transition:border-color .15s,background .15s}
@@ -1100,6 +1107,79 @@ window.__ModuleLoader__.load({
             }
           };
 
+          const exportReport = () => {
+            if (!analysis) return;
+            const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+            const note = (f0) => { if (!f0) return '—'; const m = Math.round(69 + 12 * Math.log2(f0 / 440)); return NAME[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1); };
+            const advice = buildFitAdvice(analysis);
+            const prod = buildProductionAdvice(analysis);
+            const v = analysis.voice;
+            const r = analysis.range;
+            const img = (el) => (el && el.toDataURL ? el.toDataURL('image/png') : '');
+            const rows = (arr) => (arr || []).map((k) => '<li>' + esc(t(k)) + '</li>').join('');
+            const bandRows = (analysis.bands || []).map((b) => '<tr><td>' + esc(t(b.id)) + '</td><td>' + b.pct + '%</td></tr>').join('');
+            const chatHtml = chat.length
+              ? chat.map((m) => '<div class="msg ' + m.role + '"><b>' + (m.role === 'user' ? '问：' : '答：') + '</b>' + esc(m.text) + '</div>').join('')
+              : '<p>（无）</p>';
+            const voiceHtml = v ? '<table>'
+              + '<tr><th>jitter</th><td>' + v.jitter.toFixed(2) + ' %</td></tr>'
+              + '<tr><th>shimmer</th><td>' + v.shimmer.toFixed(2) + ' %</td></tr>'
+              + '<tr><th>HNR</th><td>' + v.hnr.toFixed(1) + ' dB</td></tr>'
+              + '<tr><th>' + esc(t('health.stability')) + '</th><td>' + Math.round(v.stability) + '/100</td></tr>'
+              + '<tr><th>' + esc(t('health.breath')) + '</th><td>' + Math.round(v.breath) + '/100</td></tr>'
+              + '<tr><th>' + esc(t('health.grit')) + '</th><td>' + Math.round(v.grit) + '/100</td></tr>'
+              + '</table>' : '<p>' + esc(t('health.none')) + '</p>';
+            const rangeHtml = r ? '<table>'
+              + '<tr><th>' + esc(t('range.low')) + '</th><td>' + esc(note(r.low)) + ' · ' + Math.round(r.low) + ' Hz</td></tr>'
+              + '<tr><th>' + esc(t('range.high')) + '</th><td>' + esc(note(r.high)) + ' · ' + Math.round(r.high) + ' Hz</td></tr>'
+              + '<tr><th>' + esc(t('range.comfort')) + '</th><td>' + esc(note(r.cLow)) + ' – ' + esc(note(r.cHigh)) + '</td></tr>'
+              + '</table>' : '<p>' + esc(t('range.none')) + '</p>';
+            const html = '<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>声生观察台 · 分析报告</title>'
+              + '<style>'
+              + 'body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;max-width:820px;margin:32px auto;padding:0 20px;color:#222;line-height:1.6}'
+              + 'h1{font-size:24px;margin:0 0 4px}.meta{color:#777;font-size:12px;margin-bottom:24px}'
+              + 'h2{font-size:16px;margin:26px 0 10px;padding-bottom:6px;border-bottom:1px solid #eee}'
+              + 'img{max-width:100%;border:1px solid #eee;border-radius:8px;margin:8px 0}'
+              + 'table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top}'
+              + 'th{color:#777;font-weight:500;width:120px}ul{margin:6px 0;padding-left:20px}li{margin:3px 0;font-size:13px}'
+              + '.msg{font-size:13px;padding:8px 10px;border-radius:8px;margin:6px 0;background:#f6f6f8}.msg.user{background:#eef3ff}'
+              + '.note{font-size:12px;color:#999;margin-top:24px}@media print{body{margin:0;max-width:none}}'
+              + '</style></head><body>'
+              + '<h1>声生观察台 · 分析报告</h1>'
+              + '<div class="meta">' + esc(t('meta.duration')) + ': ' + analysis.duration.toFixed(2) + ' s · ' + new Date().toLocaleString() + ' · ' + esc(t('meta.sampleRate')) + ': ' + (analysis.sr / 1000).toFixed(1) + ' kHz</div>'
+              + '<h2>' + esc(t('range.title')) + '</h2>' + rangeHtml
+              + '<h2>' + esc(t('dyn.title')) + '</h2><table>'
+              + '<tr><th>' + esc(t('dyn.peak')) + '</th><td>' + analysis.peakDb.toFixed(1) + ' dBFS</td></tr>'
+              + '<tr><th>' + esc(t('dyn.rms')) + '</th><td>' + analysis.rmsDb.toFixed(1) + ' dBFS</td></tr>'
+              + '<tr><th>' + esc(t('dyn.range')) + '</th><td>' + analysis.dynamicRange.toFixed(1) + ' dB</td></tr>'
+              + '</table>'
+              + '<h2>' + esc(t('bands.title')) + '</h2><table>' + bandRows + '</table>'
+              + '<h2>' + esc(t('report.wave')) + '</h2><img src="' + img(canvasRef.current) + '" alt="waveform">'
+              + '<h2>' + esc(t('spec.title')) + '</h2><img src="' + img(specRef.current) + '" alt="spectrogram">'
+              + '<h2>' + esc(t('pitch.title')) + '</h2><img src="' + img(pitchRef.current) + '" alt="pitch">'
+              + '<h2>' + esc(t('health.title')) + '</h2>' + voiceHtml
+              + '<h2>' + esc(t('fit.adviceTitle')) + '</h2>'
+              + '<p><b>' + esc(t('fit.styles')) + '</b>：' + (advice.styles || []).map((k) => esc(t(k))).join('、') + '</p>'
+              + '<p><b>' + esc(t('fit.dos')) + '</b></p><ul>' + rows(advice.dos) + '</ul>'
+              + '<p><b>' + esc(t('fit.donts')) + '</b></p><ul>' + rows(advice.donts) + '</ul>'
+              + '<h2>' + esc(t('prod.title')) + '</h2>'
+              + '<p><b>' + esc(t('prod.inst')) + '</b></p><ul>' + rows(prod.inst) + '</ul>'
+              + '<p><b>' + esc(t('prod.arr')) + '</b></p><ul>' + rows(prod.arr) + '</ul>'
+              + '<p><b>' + esc(t('prod.avoid')) + '</b></p><ul>' + rows(prod.avoid) + '</ul>'
+              + '<h2>' + esc(t('chat.title')) + '</h2>' + chatHtml
+              + '<div class="note">' + esc(t('health.note')) + '</div>'
+              + '</body></html>';
+            const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'shengsheng-report-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.html';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+          };
+
           const onPick = () => inputRef.current && inputRef.current.click();
           const onDrop = (e) => {
             e.preventDefault();
@@ -1278,6 +1358,12 @@ window.__ModuleLoader__.load({
             h('div', { className: 'ss-root' },
               h('div', { className: 'ss-header' },
                 h('div', { className: 'ss-title' }, t('panel.title')),
+                h('button', {
+                  type: 'button', className: 'ss-lang',
+                  title: t('report.title'),
+                  onClick: exportReport,
+                  disabled: !analysis,
+                }, t('report.button')),
                 h('button', {
                   type: 'button', className: 'ss-lang',
                   title: lang === 'zh' ? 'Switch to English' : '切换到中文',
